@@ -1,0 +1,83 @@
+//Created by RDB
+//Based on Larry Connors RSI-2 Strategy - Lower RSI
+study(title="_CM_RSI_2_Strat_Low", shorttitle="_CM_RSI_2_Strategy_Lower", overlay=false)
+src = close, 
+
+//RSI CODE
+up = rma(max(change(src), 0), 2)
+down = rma(-min(change(src), 0), 2)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+//Criteria for Moving Avg rules
+ma5 = sma(close,5)
+ma200= sma(close, 200)
+
+//Rule for RSI Color
+col = close > ma200 and close < ma5 and rsi < 10 ? lime : close < ma200 and close > ma5 and rsi > 90 ? red : silver
+
+plot(rsi, title="RSI", style=line, linewidth=4,color=col)
+plot(100, title="Upper Line 100",style=line, linewidth=3, color=aqua)
+plot(0, title="Lower Line 0",style=line, linewidth=3, color=aqua)
+
+band1 = plot(90, title="Upper Line 90",style=line, linewidth=3, color=aqua)
+band0 = plot(10, title="Lower Line 10",style=line, linewidth=3, color=aqua)
+fill(band1, band0, color=silver, transp=90)
+
+
+//
+//Created by RDB
+// List of all my indicators: https://www.tradingview.com/v/4IneGo8h/
+//
+study(shorttitle = "SQZMOM_LB", title="Squeeze Momentum Indicator [LazyBear]", overlay=false)
+
+length = input(20, title="BB Length")
+mult = input(2.0,title="BB MultFactor")
+lengthKC=input(20, title="KC Length")
+multKC = input(1.5, title="KC MultFactor")
+
+useTrueRange = input(true, title="Use TrueRange (KC)", type=bool)
+
+// Calculate BB
+source = close
+basis = sma(source, length)
+dev = multKC * stdev(source, length)
+upperBB = basis + dev
+lowerBB = basis - dev
+
+// Calculate KC
+ma = sma(source, lengthKC)
+range = useTrueRange ? tr : (high - low)
+rangema = sma(range, lengthKC)
+upperKC = ma + rangema * multKC
+lowerKC = ma - rangema * multKC
+
+sqzOn  = (lowerBB > lowerKC) and (upperBB < upperKC)
+sqzOff = (lowerBB < lowerKC) and (upperBB > upperKC)
+noSqz  = (sqzOn == false) and (sqzOff == false)
+
+val = linreg(source  -  avg(avg(highest(high, lengthKC), lowest(low, lengthKC)),sma(close,lengthKC)), 
+            lengthKC,0)
+
+bcolor = iff( val > 0, 
+            iff( val > nz(val[1]), lime, green),
+            iff( val < nz(val[1]), red, maroon))
+scolor = noSqz ? blue : sqzOn ? black : gray 
+plot(val, color=bcolor, style=histogram, linewidth=4)
+plot(0, color=scolor, style=cross, linewidth=2)
+
+
+
+//
+//Created by RDB
+indicator("Supertrend", overlay=true, timeframe="", timeframe_gaps=true)
+
+atrPeriod = input(10, "ATR Length")
+factor = input.float(3.0, "Factor", step = 0.01)
+
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+bodyMiddle = plot((open + close) / 2, display=display.none)
+upTrend = plot(direction < 0 ? supertrend : na, "Up Trend", color = color.green, style=plot.style_linebr)
+downTrend = plot(direction < 0? na : supertrend, "Down Trend", color = color.red, style=plot.style_linebr)
+
+fill(bodyMiddle, upTrend, color.new(color.green, 90), fillgaps=false)
+fill(bodyMiddle, downTrend, color.new(color.red, 90), fillgaps=false)
